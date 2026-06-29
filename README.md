@@ -9,9 +9,9 @@ Trabalho Extra da disciplina **Processamento de Sinais I**.
 * Luís Felipe Chaves de Oliveira
 * 
 
-**Professor:** Rafael S. Chaves
-**Instituição:** Centro Federal de Educação Tecnológica Celso Suckow da Fonseca - CEFET/RJ
-**Semestre:** 2026.1
+- **Professor:** Rafael S. Chaves
+- **Instituição:** Centro Federal de Educação Tecnológica Celso Suckow da Fonseca - CEFET/RJ
+- **Semestre:** 2026.1
 ---
 
 # Descrição do Projeto
