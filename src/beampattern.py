@@ -15,36 +15,44 @@ def beampattern(
 
     Parâmetros
     ----------
-    positions : numpy.ndarray
-        Coordenadas dos sensores (M, 3).
+    positions : ndarray (M, 3)
+        Coordenadas tridimensionais dos sensores.
 
-    azimuth : array_like
-        Vetor de azimutes (rad).
+    azimuth : float ou array_like
+        Azimute(s) em radianos.
 
     elevation : float
-        Elevação (rad).
+        Elevação em radianos.
 
     wavelength : float
         Comprimento de onda.
 
-    weights : numpy.ndarray, opcional
-        Vetor de pesos complexo.
-        Se None, utiliza pesos uniformes.
+    weights : ndarray (M,), opcional
+        Vetor de pesos complexo. Se None, utiliza pesos uniformes.
 
     Retorna
     -------
-    numpy.ndarray
+    ndarray
         Ganho normalizado em dB.
     """
+
+    positions = np.asarray(positions, dtype=float)
 
     M = positions.shape[0]
 
     if weights is None:
         weights = np.ones(M, dtype=complex)
+    else:
+        weights = np.asarray(weights, dtype=complex)
+
+        if weights.shape != (M,):
+            raise ValueError(
+                f"O vetor de pesos deve possuir dimensão ({M},)."
+            )
 
     azimuth = np.atleast_1d(azimuth)
 
-    AF = np.zeros(len(azimuth), dtype=complex)
+    array_factor = np.zeros(azimuth.size, dtype=complex)
 
     for i, phi in enumerate(azimuth):
 
@@ -55,15 +63,20 @@ def beampattern(
             wavelength
         )
 
-        AF[i] = np.conjugate(weights) @ a
+        array_factor[i] = np.conjugate(weights) @ a
 
-    # Magnitude
-    B = np.abs(AF)
+    # Magnitude do Array Factor
+    gain = np.abs(array_factor)
+
+    max_gain = np.max(gain)
+
+    if max_gain == 0:
+        raise ValueError("O ganho máximo é igual a zero.")
 
     # Normalização
-    B /= np.max(B)
+    gain /= max_gain
 
     # Conversão para dB
-    B_dB = 20 * np.log10(np.maximum(B, 1e-12))
+    gain_db = 20 * np.log10(np.maximum(gain, 1e-12))
 
-    return B_dB
+    return gain_db
