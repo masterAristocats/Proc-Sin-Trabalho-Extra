@@ -92,6 +92,7 @@ Proc-Sin-Trabalho-Extra/
 ├── figures/             # Figuras geradas automaticamente
 │
 ├── data/                # Notebooks desenvolvidos no Google Colab
+| |-- beampattern_arranjos.ipynb
 | |-- directional_transmission.ipynb
 | |-- multiple_sources.ipynb
 │
