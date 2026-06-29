@@ -74,12 +74,32 @@ Cada notebook realiza automaticamente os experimentos correspondentes e gera:
 Proc-Sin-Trabalho-Extra/
 │
 ├── article/             # Artigo técnico
+| |-- paper.pdf
+| |-- paper.tex
 │
 ├── src/                 # Funções auxiliares utilizadas nos notebooks
+| |-- generate_ula.py
+| |-- generate_uca.py
+| |-- generate_upa.py
+| |-- generate_ucya.py
+| |-- steering_vector.py
+| |-- beampattern.py
+| |-- beamformer.py
 │
 ├── figures/             # Figuras geradas automaticamente
 │
 ├── data/                # Notebooks desenvolvidos no Google Colab
+| |-- directional_transmission.ipynb
+| |-- multiple_sources.ipynb
+│
+├── examples/                # Notebooks desenvolvidos no Google Colab
+| |-- generate_ula.ipynb
+| |-- generate_uca.ipynb
+| |-- generate_upa.ipynb
+| |-- generate_ucya.ipynb
+| |-- steering_vector.ipynb
+| |-- beampattern.ipynb
+| |-- beamformer.ipynb
 │
 └── README.md
 ```
