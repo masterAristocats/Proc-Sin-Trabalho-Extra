@@ -7,7 +7,8 @@ def beamformer(
     x,
     positions,
     steering_direction,
-    wavelength
+    wavelength,
+    weights=None
 ):
     """
     Beamformer convencional (Delay-and-Sum).
@@ -18,13 +19,17 @@ def beamformer(
         Sinais recebidos pelos sensores.
 
     positions : ndarray (M, 3)
-        Coordenadas dos sensores.
+        Coordenadas tridimensionais dos sensores.
 
     steering_direction : tuple
-        (azimuth, elevation) em radianos.
+        Tupla (azimuth, elevation) em radianos.
 
     wavelength : float
         Comprimento de onda.
+
+    weights : ndarray (M,), opcional
+        Vetor de pesos complexo. Se None, utiliza
+        os pesos do beamformer Delay-and-Sum.
 
     Retorna
     -------
@@ -39,12 +44,12 @@ def beamformer(
 
     if x.shape != (M,):
         raise ValueError(
-            f"x deve possuir dimensão ({M},)"
+            f"x deve possuir dimensão ({M},)."
         )
 
     azimuth, elevation = steering_direction
 
-    # Steering vector
+    # Vetor diretor
     a = steering_vector(
         positions,
         azimuth,
@@ -52,10 +57,49 @@ def beamformer(
         wavelength
     )
 
-    # Delay-and-Sum
-    w = a / M
+    # Delay-and-Sum (pesos padrão)
+    if weights is None:
+        weights = a / M
+    else:
+        weights = np.asarray(weights, dtype=complex)
 
-    # Saída
-    y = np.conjugate(w) @ x
+        if weights.shape != (M,):
+            raise ValueError(
+                f"O vetor de pesos deve possuir dimensão ({M},)."
+            )
+
+    # Saída do beamformer
+    y = np.conjugate(weights) @ x
 
     return y
+
+
+if __name__ == "__main__":
+
+    from src.generate_ula import generate_ula
+
+    wavelength = 1.0
+
+    M = 8
+    d = wavelength / 2
+
+    positions = generate_ula(M, d)
+
+    # Sinal recebido (exemplo)
+    x = np.ones(M, dtype=complex)
+
+    # Direção de observação
+    steering_direction = (
+        np.deg2rad(0),
+        np.deg2rad(0)
+    )
+
+    y = beamformer(
+        x,
+        positions,
+        steering_direction,
+        wavelength
+    )
+
+    print("Saída do beamformer:")
+    print(y)
