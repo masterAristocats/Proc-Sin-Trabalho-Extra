@@ -104,6 +104,8 @@ Proc-Sin-Trabalho-Extra/
 | |-- beampattern.ipynb
 | |-- beamformer.ipynb
 │
+|── main.ipynb
+│
 └── README.md
 ```
 
