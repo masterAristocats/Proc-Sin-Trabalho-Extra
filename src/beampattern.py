@@ -3,37 +3,63 @@ import numpy as np
 from src.steering_vector import steering_vector
 
 
-def beampattern(
-    positions,
-    azimuth,
-    elevation,
-    wavelength,
-    weights=None
-):
+def conventional_weights(
+    positions: np.ndarray,
+    azimuth: float,
+    elevation: float,
+    wavelength: float,
+    normalize: bool = True,
+) -> np.ndarray:
     """
-    Calcula o beampattern normalizado em dB.
+    Calcula os pesos do beamformer convencional (Delay-and-Sum).
 
     Parâmetros
     ----------
     positions : ndarray (M, 3)
-        Coordenadas tridimensionais dos sensores.
+        Coordenadas dos sensores.
 
-    azimuth : float ou array_like
-        Azimute(s) em radianos.
+    azimuth : float
+        Azimute de apontamento (rad).
 
-    elevation : float ou array_like
-        Elevação(ões) em radianos.
+    elevation : float
+        Elevação de apontamento (rad).
 
     wavelength : float
         Comprimento de onda.
 
-    weights : ndarray (M,), opcional
-        Vetor de pesos complexo. Se None, utiliza pesos uniformes.
+    normalize : bool, opcional
+        Se True, normaliza os pesos por M.
 
     Retorna
     -------
-    ndarray
-        Ganho normalizado em dB.
+    ndarray (M,)
+        Vetor de pesos complexo.
+    """
+
+    weights = steering_vector(
+        positions,
+        azimuth,
+        elevation,
+        wavelength
+    ).reshape(-1)
+
+    if normalize:
+        weights /= weights.size
+
+    return weights
+
+
+def array_factor(
+    positions: np.ndarray,
+    azimuth,
+    elevation,
+    wavelength: float,
+    weights: np.ndarray | None = None,
+) -> np.ndarray:
+    """
+    Calcula o Array Factor.
+
+    AF(θ,φ) = wᴴ a(θ,φ)
     """
 
     positions = np.asarray(positions, dtype=float)
@@ -42,71 +68,112 @@ def beampattern(
 
     if weights is None:
         weights = np.ones(M, dtype=complex)
-    else:
-        weights = np.asarray(weights, dtype=complex)
 
-        if weights.shape != (M,):
-            raise ValueError(
-                f"O vetor de pesos deve possuir dimensão ({M},)."
-            )
+    weights = np.asarray(weights, dtype=complex).reshape(-1)
 
-    azimuth = np.atleast_1d(azimuth)
-    elevation = np.atleast_1d(elevation)
-
-    # Apenas um dos ângulos pode ser um vetor nesta versão
-    if azimuth.size > 1 and elevation.size > 1:
+    if weights.size != M:
         raise ValueError(
-            "Nesta versão, apenas azimuth OU elevation pode ser um vetor."
+            f"O vetor de pesos deve possuir {M} elementos."
         )
 
-    # ===============================
-    # Varredura em azimute (UCA)
-    # ===============================
-    if azimuth.size > 1:
+    a = steering_vector(
+        positions,
+        azimuth,
+        elevation,
+        wavelength
+    )
 
-        array_factor = np.zeros(azimuth.size, dtype=complex)
+    return np.einsum(
+        "m,...m->...",
+        np.conjugate(weights),
+        a
+    )
 
-        for i, phi in enumerate(azimuth):
 
-            a = steering_vector(
-                positions,
-                phi,
-                elevation.item(),
-                wavelength
-            )
+def beampattern(
+    positions: np.ndarray,
+    azimuth,
+    elevation,
+    wavelength: float,
+    weights: np.ndarray | None = None,
+    floor_db: float = -80.0,
+) -> np.ndarray:
+    """
+    Calcula o beampattern normalizado em dB.
 
-            array_factor[i] = np.conjugate(weights) @ a
+    Parâmetros
+    ----------
+    positions : ndarray (M,3)
+        Coordenadas dos sensores.
 
-    # ===============================
-    # Varredura em elevação (ULA)
-    # ===============================
-    else:
+    azimuth : float ou ndarray
+        Azimute(s) em radianos.
 
-        array_factor = np.zeros(elevation.size, dtype=complex)
+    elevation : float ou ndarray
+        Elevação(ões) em radianos.
 
-        for i, theta in enumerate(elevation):
+    wavelength : float
+        Comprimento de onda.
 
-            a = steering_vector(
-                positions,
-                azimuth.item(),
-                theta,
-                wavelength
-            )
+    weights : ndarray (M,), opcional
+        Pesos complexos.
 
-            array_factor[i] = np.conjugate(weights) @ a
+    floor_db : float
+        Piso inferior em dB.
 
-    # Magnitude do Array Factor
-    gain = np.abs(array_factor)
+    Retorna
+    -------
+    ndarray
+        Beampattern normalizado em dB.
+    """
 
-    # Normalização
+    af = array_factor(
+        positions,
+        azimuth,
+        elevation,
+        wavelength,
+        weights
+    )
+
+    gain = np.abs(af)
+
     max_gain = np.max(gain)
 
-    if max_gain == 0:
-        raise ValueError("O ganho máximo é igual a zero.")
+    if max_gain <= 0:
+        gain_norm = gain
+    else:
+        gain_norm = gain / max_gain
 
-    gain /= max_gain
+    with np.errstate(divide="ignore"):
 
-    # Conversão para dB
-    gain_db = 20 * np.log10(np.maximum(gain, 1e-12))
+        gain_db = 20*np.log10(
+            np.maximum(
+                gain_norm,
+                10**(floor_db/20)
+            )
+        )
 
     return gain_db
+
+
+if __name__ == "__main__":
+
+    from src.generate_uca import generate_uca
+
+    wavelength = 1.0
+
+    positions = generate_uca(
+        M=8,
+        R=wavelength
+    )
+
+    phi = np.linspace(0, 2*np.pi, 721)
+
+    gain = beampattern(
+        positions,
+        azimuth=phi,
+        elevation=0,
+        wavelength=wavelength
+    )
+
+    print(gain)
