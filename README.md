@@ -5,7 +5,7 @@ Trabalho Extra da disciplina **Processamento de Sinais I**.
 ## Integrantes
 
 * Fabio Daniel dos Santos Lacerda
-* 
+* Guilherme Anthonio Batista Alves da Costa
 * Luís Felipe Chaves de Oliveira
 * 
 
