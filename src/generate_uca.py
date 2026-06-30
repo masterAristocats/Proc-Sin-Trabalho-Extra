@@ -1,7 +1,31 @@
 import numpy as np
 
 
-def generate_uca(M, R):
+def _validate_positive_int(name: str, value: int) -> int:
+    """
+    Valida se o parâmetro é um inteiro positivo.
+    """
+    value = int(value)
+
+    if value <= 0:
+        raise ValueError(f"{name} deve ser um inteiro positivo.")
+
+    return value
+
+
+def _validate_positive_float(name: str, value: float) -> float:
+    """
+    Valida se o parâmetro é um número positivo.
+    """
+    value = float(value)
+
+    if value <= 0:
+        raise ValueError(f"{name} deve ser maior que zero.")
+
+    return value
+
+
+def generate_uca(M: int, R: float) -> np.ndarray:
     """
     Gera as coordenadas tridimensionais de um Uniform Circular Array (UCA).
 
@@ -9,6 +33,7 @@ def generate_uca(M, R):
     ----------
     M : int
         Número de sensores.
+
     R : float
         Raio do círculo.
 
@@ -19,25 +44,26 @@ def generate_uca(M, R):
         dos sensores.
     """
 
-    if M <= 0:
-        raise ValueError("M deve ser maior que zero.")
-
-    if R <= 0:
-        raise ValueError("R deve ser maior que zero.")
-
-    positions = np.zeros((M, 3), dtype=float)
+    M = _validate_positive_int("M", M)
+    R = _validate_positive_float("R", R)
 
     # Ângulos igualmente espaçados
-    phi = np.linspace(0, 2 * np.pi, M, endpoint=False)
+    angles = 2.0 * np.pi * np.arange(M, dtype=float) / M
 
     # Coordenadas dos sensores
-    positions[:, 0] = R * np.cos(phi)
-    positions[:, 1] = R * np.sin(phi)
+    positions = np.column_stack(
+        (
+            R * np.cos(angles),
+            R * np.sin(angles),
+            np.zeros(M, dtype=float),
+        )
+    )
 
     return positions
 
 
 if __name__ == "__main__":
+
     M = 8
     R = 1.0
 
