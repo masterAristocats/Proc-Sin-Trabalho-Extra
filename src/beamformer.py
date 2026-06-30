@@ -1,77 +1,70 @@
 import numpy as np
 
-from src.steering_vector import steering_vector
+from src.beampattern import conventional_weights
 
 
 def beamformer(
-    x,
-    positions,
-    steering_direction,
-    wavelength,
-    weights=None
-):
+    x: np.ndarray,
+    positions: np.ndarray,
+    steering_direction: tuple[float, float],
+    wavelength: float,
+) -> np.ndarray:
     """
-    Beamformer convencional (Delay-and-Sum).
+    Aplica o beamformer convencional Delay-and-Sum.
 
     Parâmetros
     ----------
-    x : ndarray (M,)
+    x : ndarray (M,) ou (M, N)
         Sinais recebidos pelos sensores.
 
     positions : ndarray (M, 3)
         Coordenadas tridimensionais dos sensores.
 
-    steering_direction : tuple
+    steering_direction : tuple(float, float)
         Tupla (azimuth, elevation) em radianos.
 
     wavelength : float
         Comprimento de onda.
 
-    weights : ndarray (M,), opcional
-        Vetor de pesos complexo. Se None, utiliza
-        os pesos do beamformer Delay-and-Sum.
-
     Retorna
     -------
-    complex
+    ndarray
         Saída do beamformer.
+
+        - Se x possui dimensão (M,), retorna um escalar complexo.
+        - Se x possui dimensão (M, N), retorna um vetor de dimensão (N,).
     """
 
-    positions = np.asarray(positions, dtype=float)
     x = np.asarray(x, dtype=complex)
+    positions = np.asarray(positions, dtype=float)
 
-    M = positions.shape[0]
-
-    if x.shape != (M,):
+    if positions.ndim != 2 or positions.shape[1] != 3:
         raise ValueError(
-            f"x deve possuir dimensão ({M},)."
+            "positions deve possuir dimensão (M, 3)."
+        )
+
+    if x.ndim not in (1, 2):
+        raise ValueError(
+            "x deve possuir dimensão (M,) ou (M, N)."
+        )
+
+    if x.shape[0] != positions.shape[0]:
+        raise ValueError(
+            "x deve possuir uma linha para cada sensor."
         )
 
     azimuth, elevation = steering_direction
 
-    # Vetor diretor
-    a = steering_vector(
+    # Pesos Delay-and-Sum
+    weights = conventional_weights(
         positions,
         azimuth,
         elevation,
         wavelength
     )
 
-    # Delay-and-Sum (pesos padrão)
-    if weights is None:
-        weights = a / M
-    else:
-        weights = np.asarray(weights, dtype=complex)
-
-        if weights.shape != (M,):
-            raise ValueError(
-                f"O vetor de pesos deve possuir dimensão ({M},)."
-            )
-
     # Saída do beamformer
-    y = np.conjugate(weights) @ x
-
-    return y
+    return np.conjugate(weights) @ x
 
 
 if __name__ == "__main__":
@@ -80,15 +73,14 @@ if __name__ == "__main__":
 
     wavelength = 1.0
 
-    M = 8
-    d = wavelength / 2
+    positions = generate_ula(
+        M=8,
+        d=wavelength / 2
+    )
 
-    positions = generate_ula(M, d)
+    # Exemplo com uma única amostra
+    x = np.ones(8, dtype=complex)
 
-    # Sinal recebido (exemplo)
-    x = np.ones(M, dtype=complex)
-
-    # Direção de observação
     steering_direction = (
         np.deg2rad(0),
         np.deg2rad(0)
